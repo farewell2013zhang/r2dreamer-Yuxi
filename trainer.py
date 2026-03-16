@@ -119,7 +119,7 @@ class OnlineTrainer:
         agent_state = agent.get_initial_state(envs.env_num)
         # (B, A)
         act = agent_state["prev_action"].clone()
-        heights = torch.zeros((int(self._updates_needed._every),))
+        heights = torch.zeros((int(self._updates_needed._every)*envs.env_num,))
         new_record = 1
         while step < self.steps:
             # Evaluation
@@ -150,7 +150,7 @@ class OnlineTrainer:
             done_cpu = done.detach().to("cpu")
             trans_cpu, done_cpu = envs.step(act_cpu, done_cpu)
             if step+int((~done_cpu).sum()) - last_step <= self._updates_needed._every:
-                heights[step-last_step:step+int((~done_cpu).sum())-last_step] = trans_cpu["qpos"][:, 0]
+                heights[step-last_step:step+int((~done_cpu).sum())-last_step] = trans_cpu["qpos"][~done_cpu, 0]
 
             # Move observations back to GPU asynchronously for the agent.
             # dict of (B, 1, *)

@@ -30,6 +30,7 @@ class EnvWrapper(gym.Wrapper):
         for key, value in zip(self.keys, self.values):
             spaces[key] = gym.spaces.Box(-np.inf, np.inf, (value,), dtype=np.float32)
         self.observation_space = gym.spaces.Dict(spaces)
+        self.init = False
 
     def step(self, action):
         self.index += 1
@@ -58,11 +59,11 @@ class EnvWrapper(gym.Wrapper):
         #     done = True
         #     info["max_height"] = self.z_max
         if self.index - self.max_index > 10:
-            # done = True
+            done = True
             # info["episode"] = {"max_height": self.z_max, "l": self.index, "r": self.reward}
-            # while abs(self._last_obs[0]-obs[0]) > 0.01:
-            #     self._last_obs = obs.copy()
-            #     obs, _, _, _, _ = self.env.step(np.zeros_like(action))
+            while abs(self._last_obs[0]-obs[0]) > 0.01:
+                self._last_obs = obs.copy()
+                obs, _, _, _, _ = self.env.step(np.zeros_like(action))
             self.z_max = obs[0]
             self.z_init = obs[0]
             self.obs_init = obs.copy()
@@ -87,39 +88,41 @@ class EnvWrapper(gym.Wrapper):
         return obs, reward, done, info
 
     def reset(self, **kwargs):
-        obs, info = self.env.reset(**kwargs)
-        model = self.model
-        data = self.data
-        qpos = data.qpos.copy()
-        # Reset standing
-        # qpos[2] -= np.min(data.xipos[1:,2]) - 0.1
-        # Reset laying on the ground
-        qpos[2] = 0.15
-        qpos[3:7] = [0.707, 0, -0.707, 0]  # quaternion
-        qpos[7:] *= 0.5
+        if not self.init:
+            obs, info = self.env.reset(**kwargs)
+            model = self.model
+            data = self.data
+            qpos = data.qpos.copy()
+            # Reset standing
+            # qpos[2] -= np.min(data.xipos[1:,2]) - 0.1
+            # Reset laying on the ground
+            qpos[2] = 0.15
+            qpos[3:7] = [0.707, 0, -0.707, 0]  # quaternion
+            qpos[7:] *= 0.5
 
-        qvel = data.qvel.copy()
-        # Reset velocities to 0
-        qvel[:] = 0.0
+            qvel = data.qvel.copy()
+            # Reset velocities to 0
+            qvel[:] = 0.0
 
-        # Apply to simulation
-        data.qpos = qpos
-        data.qvel = qvel
-        mujoco.mj_forward(model, data)
+            # Apply to simulation
+            data.qpos = qpos
+            data.qvel = qvel
+            mujoco.mj_forward(model, data)
 
-        obs = self.env.unwrapped._get_obs()
+            obs = self.env.unwrapped._get_obs()
 
-        self._last_obs = obs.copy()
-        self.x_hist = [qpos[0]]
-        self.z_hist = [obs[0]]
-        self.z_sum += obs[0]
-        self.z_cnt += 1
-        self.z_init = obs[0]
-        self.obs_init = obs.copy()
-        self.z_max = obs[0]
-        self.index = 0
-        self.max_index = 0
-        self.reward = 0
+            self._last_obs = obs.copy()
+            self.x_hist = [qpos[0]]
+            self.z_hist = [obs[0]]
+            self.z_sum += obs[0]
+            self.z_cnt += 1
+            self.z_init = obs[0]
+            self.obs_init = obs.copy()
+            self.z_max = obs[0]
+            self.index = 0
+            self.max_index = 0
+            self.reward = 0
+            self.init = True
         obs = {}
         i_start = 0
         for i in range(len(self.keys)):
@@ -128,6 +131,7 @@ class EnvWrapper(gym.Wrapper):
         obs["is_terminal"] = False
         obs["is_first"] = True
         obs["is_last"] = False
+            
         return obs
 
 def make_envs(config):

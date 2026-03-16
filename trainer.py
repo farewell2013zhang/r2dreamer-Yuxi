@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 import tools
 
 
@@ -120,6 +120,10 @@ class OnlineTrainer:
         # (B, A)
         act = agent_state["prev_action"].clone()
         heights = torch.zeros((int(self._updates_needed._every)*envs.env_num,))
+        heights_mean = []
+        heights_cnt = []
+        best_value = 0
+        patience = 0
         new_record = 1
         while step < self.steps:
             # Evaluation
@@ -186,9 +190,14 @@ class OnlineTrainer:
                 update_count += update_num
                 # Log training metrics
                 if self._should_log(step):
-                    self.logger.scalar(f"height_mean", heights[:min(len(heights),step+int((~done_cpu).sum())-last_step)].mean().item())
-                    self.logger.scalar(f"height_0_05", torch.quantile(heights[:min(len(heights),step+int((~done_cpu).sum())-last_step)], torch.tensor(0.05)).item())
-                    self.logger.scalar(f"height_0_95", torch.quantile(heights[:min(len(heights),step+int((~done_cpu).sum())-last_step)], torch.tensor(0.95)).item())
+                    height_cnt = min(len(heights),step+int((~done_cpu).sum())-last_step)
+                    height_mean = heights[:height_cnt].mean().item()
+                    heights_cnt.append(height_cnt)
+                    heights_mean.append(height_mean)
+                    height_mean = sum(heights_mean[-5:]) / (sum(heights_cnt[-5:]) + 1e-5)
+                    self.logger.scalar(f"height_mean", height_mean)
+                    self.logger.scalar(f"height_0_05", torch.quantile(heights[:height_cnt], torch.tensor(0.05)).item())
+                    self.logger.scalar(f"height_0_95", torch.quantile(heights[:height_cnt], torch.tensor(0.95)).item())
                     new_record = 1
                     heights = torch.zeros((int(self._updates_needed._every),))
                     for name, value in train_metrics.items():
@@ -202,3 +211,19 @@ class OnlineTrainer:
                         for name, param in agent._named_params.items():
                             self.logger.histogram(name, tools.to_np(param))
                     self.logger.write(step, fps=True)
+                    current_value = height_mean
+                    if best_value < current_value:
+                        items_to_save = {
+                            "agent_state_dict": agent.state_dict(),
+                            "optims_state_dict": tools.recursively_collect_optim_state_dict(agent),
+                        }
+                        torch.save(items_to_save, self.logger._logdir / "best.pt")
+                        np.save(self.logger._logdir / "obs_init.npy", trans_cpu["qpos"])
+                        print(f"✅ Saved new best model, value={current_value:.4f}")
+                        best_value = current_value
+                        patience = 0
+                    else:
+                        patience += 1
+                        print(f"patience={patience}, value={current_value:.4f}")
+                        if patience > 1000:
+                            break

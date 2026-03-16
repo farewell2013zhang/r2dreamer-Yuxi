@@ -1,0 +1,17 @@
+task: 'humanoid_stand'
+steps: 1e8
+env_num: 1
+eval_episode_num: 0
+action_repeat: 1
+train_ratio: 2
+time_limit: 1e10
+
+seed: ${seed}
+device: ${device}
+
+encoder:
+  mlp_keys: '.*'
+  cnn_keys: '$^'
+decoder:
+  mlp_keys: '.*'
+  cnn_keys: '$^'

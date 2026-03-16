@@ -60,16 +60,7 @@ class EnvWrapper(gym.Wrapper):
         #     info["max_height"] = self.z_max
         if self.index - self.max_index > 10:
             done = True
-            # info["episode"] = {"max_height": self.z_max, "l": self.index, "r": self.reward}
-            while abs(self._last_obs[0]-obs[0]) > 0.01:
-                self._last_obs = obs.copy()
-                obs, _, _, _, _ = self.env.step(np.zeros_like(action))
-            self.z_max = obs[0]
-            self.z_init = obs[0]
-            self.obs_init = obs.copy()
-            self.index = 0
-            self.max_index = 0
-            self.reward = 0
+            self._last_last_obs = self._last_obs.copy()
         else:
             if obs[0] > self.z_max:
                 self.z_max = min(1.4, obs[0])
@@ -123,6 +114,20 @@ class EnvWrapper(gym.Wrapper):
             self.max_index = 0
             self.reward = 0
             self.init = True
+        else:
+            obs = self._last_obs.copy()
+            self._last_obs = self._last_last_obs.copy()
+            while abs(self._last_obs[0]-obs[0]) > 0.01:
+                self._last_obs = obs.copy()
+                obs, _, _, _, _ = self.env.step(np.zeros(self.action_space.shape))
+            self._last_obs = obs.copy()
+            self.z_max = obs[0]
+            self.z_init = obs[0]
+            self.obs_init = obs.copy()
+            self.index = 0
+            self.max_index = 0
+            self.reward = 0
+
         obs = {}
         i_start = 0
         for i in range(len(self.keys)):

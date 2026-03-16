@@ -58,7 +58,7 @@ class EnvWrapper(gym.Wrapper):
         #     done = True
         #     info["max_height"] = self.z_max
         if self.index - self.max_index > 10:
-            done = True
+            # done = True
             # info["episode"] = {"max_height": self.z_max, "l": self.index, "r": self.reward}
             # while abs(self._last_obs[0]-obs[0]) > 0.01:
             #     self._last_obs = obs.copy()

@@ -120,7 +120,7 @@ class OnlineTrainer:
         # (B, A)
         act = agent_state["prev_action"].clone()
         heights = torch.zeros((int(self._updates_needed._every)*envs.env_num,))
-        heights_mean = []
+        heights_sum = []
         heights_cnt = []
         best_value = 0
         patience = 0
@@ -193,8 +193,8 @@ class OnlineTrainer:
                     height_cnt = min(len(heights),step+int((~done_cpu).sum())-last_step)
                     height_mean = heights[:height_cnt].mean().item()
                     heights_cnt.append(height_cnt)
-                    heights_mean.append(height_mean)
-                    height_mean = sum(heights_mean[-5:]) / (sum(heights_cnt[-5:]) + 1e-5)
+                    heights_sum.append(height_mean * height_cnt)
+                    height_mean = sum(heights_sum[-5:]) / (sum(heights_cnt[-5:]) + 1e-5)
                     self.logger.scalar(f"height_mean", height_mean)
                     self.logger.scalar(f"height_0_05", torch.quantile(heights[:height_cnt], torch.tensor(0.05)).item())
                     self.logger.scalar(f"height_0_95", torch.quantile(heights[:height_cnt], torch.tensor(0.95)).item())

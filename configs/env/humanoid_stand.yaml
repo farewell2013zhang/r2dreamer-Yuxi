@@ -1,6 +1,6 @@
 task: 'humanoid_stand'
 steps: 1e8
-env_num: 1
+env_num: 5
 eval_episode_num: 0
 action_repeat: 1
 train_ratio: 2

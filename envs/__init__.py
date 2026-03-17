@@ -30,7 +30,6 @@ class EnvWrapper(gym.Wrapper):
         for key, value in zip(self.keys, self.values):
             spaces[key] = gym.spaces.Box(-np.inf, np.inf, (value,), dtype=np.float32)
         self.observation_space = gym.spaces.Dict(spaces)
-        self.init = False
 
     def step(self, action):
         self.index += 1
@@ -59,8 +58,7 @@ class EnvWrapper(gym.Wrapper):
         #     done = True
         #     info["max_height"] = self.z_max
         if self.index - self.max_index > 10:
-            # done = True
-            self._last_last_obs = self._last_obs.copy()
+            done = True
         else:
             if obs[0] > self.z_max:
                 self.z_max = min(1.4, obs[0])
@@ -79,54 +77,39 @@ class EnvWrapper(gym.Wrapper):
         return obs, reward, done, info
 
     def reset(self, **kwargs):
-        if not self.init:
-            obs, info = self.env.reset(**kwargs)
-            model = self.model
-            data = self.data
-            qpos = data.qpos.copy()
-            # Reset standing
-            # qpos[2] -= np.min(data.xipos[1:,2]) - 0.1
-            # Reset laying on the ground
-            qpos[2] = 0.15
-            qpos[3:7] = [0.707, 0, -0.707, 0]  # quaternion
-            qpos[7:] *= 0.5
+        obs, info = self.env.reset(**kwargs)
+        model = self.model
+        data = self.data
+        qpos = data.qpos.copy()
+        # Reset standing
+        # qpos[2] -= np.min(data.xipos[1:,2]) - 0.1
+        # Reset laying on the ground
+        qpos[2] = 0.15
+        qpos[3:7] = [0.707, 0, -0.707, 0]  # quaternion
+        qpos[7:] *= 0.5
 
-            qvel = data.qvel.copy()
-            # Reset velocities to 0
-            qvel[:] = 0.0
+        qvel = data.qvel.copy()
+        # Reset velocities to 0
+        qvel[:] = 0.0
 
-            # Apply to simulation
-            data.qpos = qpos
-            data.qvel = qvel
-            mujoco.mj_forward(model, data)
+        # Apply to simulation
+        data.qpos = qpos
+        data.qvel = qvel
+        mujoco.mj_forward(model, data)
 
-            obs = self.env.unwrapped._get_obs()
+        obs = self.env.unwrapped._get_obs()
 
-            self._last_obs = obs.copy()
-            self.x_hist = [qpos[0]]
-            self.z_hist = [obs[0]]
-            self.z_sum += obs[0]
-            self.z_cnt += 1
-            self.z_init = obs[0]
-            self.obs_init = obs.copy()
-            self.z_max = obs[0]
-            self.index = 0
-            self.max_index = 0
-            self.reward = 0
-            self.init = True
-        else:
-            obs = self._last_obs.copy()
-            self._last_obs = self._last_last_obs.copy()
-            while abs(self._last_obs[0]-obs[0]) > 0.01:
-                self._last_obs = obs.copy()
-                obs, _, _, _, _ = self.env.step(np.zeros(self.action_space.shape))
-            self._last_obs = obs.copy()
-            self.z_max = obs[0]
-            self.z_init = obs[0]
-            self.obs_init = obs.copy()
-            self.index = 0
-            self.max_index = 0
-            self.reward = 0
+        self._last_obs = obs.copy()
+        self.x_hist = [qpos[0]]
+        self.z_hist = [obs[0]]
+        self.z_sum += obs[0]
+        self.z_cnt += 1
+        self.z_init = obs[0]
+        self.obs_init = obs.copy()
+        self.z_max = obs[0]
+        self.index = 0
+        self.max_index = 0
+        self.reward = 0
 
         obs = {}
         i_start = 0

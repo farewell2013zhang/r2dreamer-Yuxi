@@ -1,6 +1,6 @@
 act_entropy: 3e-4
 kl_free: 1.0
-imag_horizon: 15
+imag_horizon: 30
 horizon: 200
 lamb: 0.95
 compile: False
@@ -154,8 +154,8 @@ actor:
   dist:
     cont:
       name: 'bounded_normal'
-      min_std: 0.1
-      max_std: 1.0
+      min_std: 0.2
+      max_std: 1.5
     disc:
       name: 'onehot'
       unimix_ratio: 0.01

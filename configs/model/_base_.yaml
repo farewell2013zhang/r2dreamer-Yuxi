@@ -27,8 +27,8 @@ loss_scales:
   dyn: 1.0
   rep: 0.1
   policy: 1.0
-  value: 1.0
-  repval: 0.3
+  value: 0.5
+  repval: 0.2
   swav: 1.0
   temp: 1.0
   norm: 1.0

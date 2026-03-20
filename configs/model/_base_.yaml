@@ -2,7 +2,7 @@ act_entropy: 5e-4
 kl_free: 1.0
 imag_horizon: 30
 horizon: 200
-lamb: 0.95
+lamb: 0.97
 compile: False
 log_grads: False
 device: ${device}

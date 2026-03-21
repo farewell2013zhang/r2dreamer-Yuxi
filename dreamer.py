@@ -428,7 +428,7 @@ class Dreamer(nn.Module):
 
         # reward and continue
         losses["rew"] = torch.mean(-self.reward(feat).log_prob(to_f32(data["reward"])))
-        cont = 1.0 - to_f32(data["is_last"])
+        cont = 1.0 - to_f32(data["is_terminal"])
         losses["con"] = torch.mean(-self.cont(feat).log_prob(cont))
         # log
         metrics["dyn_entropy"] = torch.mean(self.rssm.get_dist(prior_logit).entropy())

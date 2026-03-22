@@ -377,7 +377,7 @@ class Dreamer(nn.Module):
         feat = self.rssm.get_feat(post_stoch, post_deter)
         if self.rep_loss == "dreamer":
             recon_losses = {
-                key: torch.mean(-dist.log_prob(data[key])) for key, dist in self.decoder(post_stoch, post_deter).items()
+                key: torch.mean(-dist.log_prob(data[key])) * (0.01 if key == 'cfrc_ext' or key == 'qfrc_actuator' else 0.1 if key == 'qvel' or key == 'cvel' else 1) for key, dist in self.decoder(post_stoch, post_deter).items()
             }
             losses.update(recon_losses)
         elif self.rep_loss == "r2dreamer":
@@ -441,13 +441,22 @@ class Dreamer(nn.Module):
             post_deter.reshape(-1, *post_deter.shape[2:]).detach(),
         )
         # (B, T, ...) -> (B*T, ...)
-        imag_feat, imag_action = self._imagine(start, self.imag_horizon + 1)
+        imag_feat, imag_action, imag_stoch, imag_deter = self._imagine(start, self.imag_horizon + 1)
         imag_feat, imag_action = imag_feat.detach(), imag_action.detach()
 
-        # (B*T, T_imag, 1)
-        imag_reward = self._frozen_reward(imag_feat).mode()
-        # (B*T, T_imag, 1)  probability of continuation
-        imag_cont = self._frozen_cont(imag_feat).mean
+        if self.rep_loss == "dreamer" and 'qpos' in self.decoder(post_stoch, post_deter):
+            for key, dist in self.decoder(imag_stoch, imag_deter).items():
+                if key == 'qpos':
+                    height = dist.mode()[:,:,[0]].detach()
+            # (B*T, T_imag, 1)
+            imag_reward = 5 * (1 - (1.4 - torch.clamp(height, max=1.4)) ** 2 / 1.4 ** 2) - 0.1 * torch.sum(torch.square(imag_action),dim=-1).unsqueeze(-1)
+            # (B*T, T_imag, 1)  probability of continuation
+            imag_cont = self._frozen_cont(imag_feat).mean
+        else:
+            # (B*T, T_imag, 1)
+            imag_reward = self._frozen_reward(imag_feat).mode()
+            # (B*T, T_imag, 1)  probability of continuation
+            imag_cont = self._frozen_cont(imag_feat).mean
         # (B*T, T_imag, 1)
         imag_value = self._frozen_value(imag_feat).mode()
         imag_slow_value = self._frozen_slow_value(imag_feat).mode()
@@ -536,6 +545,8 @@ class Dreamer(nn.Module):
         feats = []
         actions = []
         stoch, deter = start
+        stochs = []
+        deters = []
         for _ in range(imag_horizon):
             # (B, F)
             feat = self._frozen_rssm.get_feat(stoch, deter)
@@ -545,10 +556,12 @@ class Dreamer(nn.Module):
             feats.append(feat)
             actions.append(action)
             stoch, deter = self._frozen_rssm.img_step(stoch, deter, action)
+            stochs.append(stoch)
+            deters.append(deter)
 
         # Stack along sequence dim T_imag.
         # (B, T_imag, F), (B, T_imag, A)
-        return torch.stack(feats, dim=1), torch.stack(actions, dim=1)
+        return torch.stack(feats, dim=1), torch.stack(actions, dim=1), torch.stack(stochs, dim=1), torch.stack(deters, dim=1)
 
     @torch.no_grad()
     def _lambda_return(self, last, term, reward, value, boot, disc, lamb):

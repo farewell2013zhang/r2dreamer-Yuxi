@@ -1,7 +1,7 @@
 act_entropy: 5e-4
 kl_free: 1.0
 imag_horizon: 15
-horizon: 30
+horizon: 50
 lamb: 0.5
 compile: False
 log_grads: False

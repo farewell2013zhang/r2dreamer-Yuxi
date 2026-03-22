@@ -22,7 +22,7 @@ loss_scales:
   barlow: 0.05
   infonce: 1.0
   recon: 1.0
-  rew: 1.0
+  rew: 0.0
   con: 1.0
   dyn: 1.0
   rep: 0.1

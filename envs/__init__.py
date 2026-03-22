@@ -71,7 +71,7 @@ class EnvWrapper(gym.Wrapper):
         for i in range(len(self.keys)):
             obs[self.keys[i]] = self._last_obs[i_start:i_start+self.values[i]]
             i_start += self.values[i]
-        obs["is_terminal"] = False
+        obs["is_terminal"] = done
         obs["is_first"] = False
         obs["is_last"] = done
         return obs, reward, done, info

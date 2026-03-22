@@ -153,7 +153,7 @@ class OnlineTrainer:
             # (B,)
             done_cpu = done.detach().to("cpu")
             trans_cpu, done_cpu = envs.step(act_cpu, done_cpu)
-            if step+int((~done_cpu).sum()) - last_step <= self._updates_needed._every:
+            if step+int((~done_cpu).sum()) - last_step <= self._updates_needed._every and "qpos" in trans_cpu:
                 heights[step-last_step:step+int((~done_cpu).sum())-last_step] = trans_cpu["qpos"][~done_cpu, 0]
 
             # Move observations back to GPU asynchronously for the agent.

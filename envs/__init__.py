@@ -57,7 +57,8 @@ class EnvWrapper(gym.Wrapper):
         #     self.index - self.max_index > 10:
         #     done = True
         #     info["max_height"] = self.z_max
-        if self.index - self.max_index > 10:
+        # if self.index - self.max_index > 10:
+        if self.index > 50:
             done = True
         else:
             if obs[0] > self.z_max:
@@ -71,7 +72,7 @@ class EnvWrapper(gym.Wrapper):
         for i in range(len(self.keys)):
             obs[self.keys[i]] = self._last_obs[i_start:i_start+self.values[i]]
             i_start += self.values[i]
-        obs["is_terminal"] = done
+        obs["is_terminal"] = False
         obs["is_first"] = False
         obs["is_last"] = done
         return obs, reward, done, info

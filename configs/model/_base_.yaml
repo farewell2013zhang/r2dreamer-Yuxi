@@ -6,7 +6,7 @@ lamb: 0.97
 compile: False
 log_grads: False
 device: ${device}
-rep_loss: "dreamer" # r2dreamer/dreamer/infonce/dreamerpro
+rep_loss: "r2dreamer" # r2dreamer/dreamer/infonce/dreamerpro
 
 lr: 4e-5
 agc: 0.3

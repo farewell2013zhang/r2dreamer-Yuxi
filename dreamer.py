@@ -447,9 +447,9 @@ class Dreamer(nn.Module):
         if self.rep_loss == "dreamer" and 'qpos' in self.decoder(post_stoch, post_deter):
             for key, dist in self.decoder(imag_stoch, imag_deter).items():
                 if key == 'qpos':
-                    height = dist.mode()[:,:,[0]].flatten().detach()
+                    height = dist.mode()[:,:,[0]].detach()
             # (B*T, T_imag, 1)
-            imag_reward = 5 * (1 - (1.4 - torch.clamp(height, max=1.4)) ** 2 / 1.4 ** 2) - 0.1 * torch.sum(torch.square(imag_action),dim=-1)
+            imag_reward = 5 * (1 - (1.4 - torch.clamp(height, max=1.4)) ** 2 / 1.4 ** 2) - 0.1 * torch.sum(torch.square(imag_action),dim=-1).unsqueeze(-1)
             # (B*T, T_imag, 1)  probability of continuation
             imag_cont = self._frozen_cont(imag_feat).mean
         else:

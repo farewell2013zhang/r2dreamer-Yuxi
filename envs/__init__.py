@@ -58,7 +58,7 @@ class EnvWrapper(gym.Wrapper):
         #     done = True
         #     info["max_height"] = self.z_max
         # if self.index - self.max_index > 10:
-        if self.index > 50:
+        if self.index > 100:
             done = True
         else:
             if obs[0] > self.z_max:

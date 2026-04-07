@@ -23,10 +23,10 @@ class EnvWrapper(gym.Wrapper):
         self.z_sum = 0
         self.z_cnt = 0
         spaces = {}
-        self.keys = ["qpos", "qvel", "cinert", "cvel", "qfrc_actuator", "cfrc_ext"]
-        self.values = [22, 23, 130, 78, 17, 78]
-        # self.keys = ["qpos", "qvel", "cinert", "cvel"]
-        # self.values = [22, 23, 130, 78]
+        # self.keys = ["qpos", "qvel", "cinert", "cvel", "qfrc_actuator", "cfrc_ext"]
+        # self.values = [22, 23, 130, 78, 17, 78]
+        self.keys = ["qpos", "qvel", "cinert", "cvel"]
+        self.values = [22, 23, 130, 78]
         for key, value in zip(self.keys, self.values):
             spaces[key] = gym.spaces.Box(-np.inf, np.inf, (value,), dtype=np.float32)
         self.observation_space = gym.spaces.Dict(spaces)
@@ -57,8 +57,8 @@ class EnvWrapper(gym.Wrapper):
         #     self.index - self.max_index > 10:
         #     done = True
         #     info["max_height"] = self.z_max
-        # if self.index - self.max_index > 10:
-        if self.index > 100:
+        if self.index - self.max_index > 10:
+        # if self.index > 100:
             done = True
         else:
             if obs[0] > self.z_max:
